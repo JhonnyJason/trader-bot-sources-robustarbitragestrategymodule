@@ -107,7 +107,7 @@ heartbeat = ->
 
     for exchange,assetPairMap of currentIdeas
         for assetPair,ideaList of assetPairMap
-            await evolveIdeas(exchange, assetPair)
+            evolveIdeas(exchange, assetPair)
             reflectToCurrentIdeas(exchange, assetPair)
     # log "currentIdeas:"
     # olog currentIdeas
@@ -222,12 +222,12 @@ setSellBackIdea = (exchange, assetPair) ->
 ############################################################
 sellHeadNeedsReset = (exchange, assetPair) ->
     # log "sellHeadNeedsReset?"
-    heads = currentHeads[exchange][assetPair]
-    if heads.sellHead.iteration > 0 then return false
+    sellHead = currentHeads[exchange][assetPair].sellHead
+    if sellHead.iteration > 0 then return false
 
     thoughtHeadPrice = calculateSellHeadPrice(exchange, assetPair)
     # log "thoughtHeadPrice: " + thoughtHeadPrice
-    sellHeadPrice = heads.sellHead.price
+    sellHeadPrice = sellHead.price
     # log "current sellHeadPrice: " + sellHeadPrice
 
     noResetRangePercent = 3 * params.baseDistancePercent
@@ -239,18 +239,21 @@ sellHeadNeedsReset = (exchange, assetPair) ->
 
     resetPrice = sellHeadPrice - noResetRange 
     
-    if thoughtHeadPrice < resetPrice then return true 
+    if !sellHead.resetPressure? then sellHead.resetPressure = 0
+    if thoughtHeadPrice < resetPrice then sellHead.resetPressure++
+    else sellHead.resetPressure = 0
 
+    if sellHead.resetPressure > 7 then return true
     return false
 
 buyHeadNeedsReset = (exchange, assetPair) ->
     # log "buyHeadNeedsReset?"
-    heads = currentHeads[exchange][assetPair]
-    if heads.buyHead.iteration > 0 then return false
+    buyHead = currentHeads[exchange][assetPair].buyHead
+    if buyHead.iteration > 0 then return false
         
     thoughtHeadPrice = calculateBuyHeadPrice(exchange, assetPair)
     # log "thoughtHeadPrice: " + thoughtHeadPrice
-    buyHeadPrice = heads.buyHead.price
+    buyHeadPrice = buyHead.price
     # log "current sellHeadPrice: " + sellHeadPrice
 
     noResetRangePercent = 3 * params.baseDistancePercent
@@ -262,8 +265,11 @@ buyHeadNeedsReset = (exchange, assetPair) ->
 
     resetPrice = buyHeadPrice + noResetRange 
     
-    if thoughtHeadPrice > resetPrice  then return true 
-
+    if !buyHead.resetPressure? then buyHead.resetPressure = 0
+    if thoughtHeadPrice > resetPrice  then buyHead.resetPressure++
+    else buyHead.resetPressure = 0
+    
+    if buyHead.resetPressure > 7 then return true 
     return false
 
 resetBuyHead = (exchange, assetPair) ->
