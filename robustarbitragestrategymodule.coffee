@@ -107,7 +107,7 @@ heartbeat = ->
 
     for exchange,assetPairMap of currentIdeas
         for assetPair,ideaList of assetPairMap
-            evolveIdeas(exchange, assetPair)
+            await evolveIdeas(exchange, assetPair)
             reflectToCurrentIdeas(exchange, assetPair)
     # log "currentIdeas:"
     # olog currentIdeas
