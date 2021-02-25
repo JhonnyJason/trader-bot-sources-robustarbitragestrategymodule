@@ -200,7 +200,7 @@ resetUselessHeads = (exchange, assetPair) ->
 createMissingHeads = (exchange, assetPair) ->
     heads = currentHeads[exchange][assetPair]
 
-    # if !heads.buyHead? then setNewBuyHead(exchange, assetPair)
+    if !heads.buyHead? then setNewBuyHead(exchange, assetPair)
     if !heads.sellHead? then setNewSellHead(exchange, assetPair)
     return
 
@@ -530,18 +530,22 @@ getBuyHeadPriceFactor = (exchange, assetPair) ->
     baseDistancePercent = getBaseDistancePercent(exchange, assetPair)
     magnifier = getMagnifier(exchange, assetPair)
     iteration = currentIterations[exchange][assetPair].buy
-
+    if iteration == 0 then return 1.0
+    
     magnification = Math.pow(magnifier, iteration)
     distancePercent = baseDistancePercent * magnification
+    
     return (1.0 / utl.plusPercentFactor(distancePercent))
 
 getSellHeadPriceFactor = (exchange, assetPair) ->
     baseDistancePercent = getBaseDistancePercent(exchange, assetPair)
     magnifier = getMagnifier(exchange, assetPair)
     iteration = currentIterations[exchange][assetPair].sell
+    if iteration == 0 then return 1.0
 
     magnification = Math.pow(magnifier, iteration)
     distancePercent = baseDistancePercent * magnification
+    
     return utl.plusPercentFactor(distancePercent)
 
 getBuyBackPriceFactor = (exchange, assetPair) ->
