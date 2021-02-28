@@ -201,7 +201,7 @@ createMissingHeads = (exchange, assetPair) ->
     heads = currentHeads[exchange][assetPair]
 
     if !heads.buyHead? then setNewBuyHead(exchange, assetPair)
-    if !heads.sellHead? then setNewSellHead(exchange, assetPair)
+    # if !heads.sellHead? then setNewSellHead(exchange, assetPair)
     return
 
 ############################################################
