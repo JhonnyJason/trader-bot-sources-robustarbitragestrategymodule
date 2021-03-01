@@ -180,6 +180,7 @@ handleRealizedIdeas = (exchange, assetPair) ->
         if heads.buyHead?
             await cancelIdea(heads.buyHead)
             freeAllocatedBuyBudget(heads.buyHead)
+            
         registerEatenSellBack(backOrders.sellBack)
         iterations.buy = 0
         heads.buyHead = null
