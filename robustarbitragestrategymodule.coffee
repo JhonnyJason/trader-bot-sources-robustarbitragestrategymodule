@@ -146,6 +146,7 @@ handleRealizedIdeas = (exchange, assetPair) ->
 
     if heads.buyHead and heads.buyHead.eaten
         if backOrders.sellBack?
+            return unless backOrders.sellBack.isRealized
             await cancelIdea(backOrders.sellBack)
             freeAllocatedSellBudget(backOrders.sellBack)
 
@@ -157,6 +158,7 @@ handleRealizedIdeas = (exchange, assetPair) ->
 
     if heads.sellHead and heads.sellHead.eaten
         if backOrders.buyBack?
+            return unless backOrders.buyBack.isRealized
             await cancelIdea(backOrders.buyBack)
             freeAllocatedBuyBudget(backOrders.buyBack)
 
@@ -201,8 +203,8 @@ resetUselessHeads = (exchange, assetPair) ->
 createMissingHeads = (exchange, assetPair) ->
     heads = currentHeads[exchange][assetPair]
 
-    if !heads.buyHead? then setNewBuyHead(exchange, assetPair)
-    if !heads.sellHead? then setNewSellHead(exchange, assetPair)
+    if !heads.buyHead? and goBuyDirection(exchange, assetPair) then setNewBuyHead(exchange, assetPair)
+    if !heads.sellHead? and goSellDirection(exchange, assetPair) then setNewSellHead(exchange, assetPair)
     return
 
 ############################################################
@@ -433,12 +435,6 @@ getMinVolume = (exchange, assetPair) ->
     return params.minVolume unless params.specific[exchange][assetPair].minVolume?
     return params.specific[exchange][assetPair].minVolume
 
-getHeadVolumePercent = (exchange, assetPair) ->
-    return params.headVolumePercent unless params.specific[exchange]?
-    return params.headVolumePercent unless params.specific[exchange][assetPair]?
-    return params.headVolumePercent unless params.specific[exchange][assetPair].headVolumePercent?
-    return params.specific[exchange][assetPair].headVolumePercent
-
 getBaseDistancePercent = (exchange, assetPair) ->
     return params.baseDistancePercent unless params.specific[exchange]?
     return params.baseDistancePercent unless params.specific[exchange][assetPair]?
@@ -456,6 +452,18 @@ getBackOrderDistancePercent = (exchange, assetPair) ->
     return params.backOrderDistancePercent unless params.specific[exchange][assetPair]?
     return params.backOrderDistancePercent unless params.specific[exchange][assetPair].backOrderDistancePercent?
     return params.specific[exchange][assetPair].backOrderDistancePercent
+
+goBuyDirection = (exchange, assetPair) ->
+    return params.buyDirection unless params.specific[exchange]?
+    return params.buyDirection unless params.specific[exchange][assetPair]?
+    return params.buyDirection unless params.specific[exchange][assetPair].buyDirection?
+    return params.specific[exchange][assetPair].buyDirection
+
+goSellDirection = (exchange, assetPair) ->
+    return params.sellDirection unless params.specific[exchange]?
+    return params.sellDirection unless params.specific[exchange][assetPair]?
+    return params.sellDirection unless params.specific[exchange][assetPair].sellDirection?
+    return params.specific[exchange][assetPair].sellDirection
 
 #endregion
 
