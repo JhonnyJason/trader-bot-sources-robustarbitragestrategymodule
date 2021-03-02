@@ -24,34 +24,68 @@ class SellThread
         @backOrderDistancePercent = @getBackOrderDistancePercent(params)
         @active = @goSellDirection(params)
 
+    ############################################################
     saveState: -> stateModule.save(@exch+">"+@pair+"_sellThread", @state)
 
+    ############################################################
     run: ->
-        loop
-            try await @doNextSell()
+        # if !@active
+        #     @state = {}
+        #     @saveState()
+        #     return
+        if !@state.currentStep? then @state.currentStep = "INIT"
+        while @active
+            try switch @state.currentStep
+                when "ALLOCATESELLHEADBUDGET" then await @allocateSellHeadBudget()
+                when "CREATENEXTHEAD" then @createNextSell()
+                when "AWAITSELL" then await @sellEatenSignal()
+                when "POSTSELL" then await @postSell()
+                when "FREEBUYBACKBUDGET" then await @freeBuyBackBudget()
+                when "REGISTERSELLINBUDGET" then await @registerSellInBudget()
+                when "ALLOCATENEWBUYBACKBUDGET" then @allocateNewBuyBackBudget()
+                when "UPDATEBUYBACK" then await @updateBuyBack()
+                when "AWAITBUYBACKREALIZATION" then await @buyBackRealized()
+
             catch exception then await @handleException(exception)
         return
 
-    doNextSell: ->
-        # we have 2 cases:
-        # 1. we just restarted the strategy then we already have a @state.head and may just wait for the signal that it was eaten?
-        # 2. we come from last iteration where sell was eaten - so we need a new sellHead
-        if @state.head == null then await @setNewSellHead()
-        await @getSellEatenSignal()
-
-        oldBuyBack = @state.backOrder
-        if oldBuyBack? then await cancelOrder(oldBuyBack)    
-        await @freeAllocatedBuyBudget(oldBuyBack)
-        await @registerEatenSellHead()
-        buyBack = @getNextBuyBack
-
-
-
-    resetSellHead: ->
+    ############################################################
+    postSell: ->
+        if @state.backOrder? 
+            await cancelOrder(@state.backOrder)
+            @setStep("FREEBUYBUDGET")
+        else @setStep("REGISTERSELLINBUDGET")
         return
 
+    freeBuyBudget:  ->
+        await @freeAllocatedBuyBudget(@state.backOrder)
+        @setStep("REGISTERSELLINBUDGET")
+        return
+
+    registerSellInBudget: ->
+        await @registerEatenSellHeadInBudget()
+        @setStep("ALLOCATENEWBUYBACKBUDGET")
+
+    updateBuyBack: ->            
+        buyBack = @getNextBuyBack(@state.backOrder)
+        await @
+
+    sellStep: ->
+        await sellEatenSignal()
+        @setStep("AFTERSELL")
+        return
+
+
+    ############################################################
+    setStep: (step) ->
+        @state.currentStep = step
+        @saveState()
+        return
+
+    ############################################################
     handleException: (exception) ->
-        if exception.buyBackEaten then await @resetSellHead()
+        if exception.buyBackEaten then await @terminateThread()
+        if exception.userCancel then await @handleUserCancel()
         if exception.partialFill then await @handlePartial(exception)
         if exception.stack then await @handleError(exception)
         return
@@ -64,20 +98,12 @@ class SellThread
         bot.send(exception)
         return
 
-    getSellHeadEatenSignal: ->
-        
+    sellEatenSignal: -> return new Promise (resolve, reject) ->
+        @notifySold = resolve
+        @notifyException = reject
         return
 
-
-    getSecretSpace: ->
-        await @ready
-        secret = await getSecretSpace(this)
-        return await decrypt(secret, @secretKeyHex)
-
-    getSecret: (secretId) ->
-        await @ready
-        secret = await getSecret(secretId, this)
-        return await decrypt(secret, @secretKeyHex)
+    
 
     ############################################################
     #region parameterExtraction
@@ -131,9 +157,6 @@ class SellThread
 #endregion
 
 ############################################################
-selldirectionrunner.initialize = (exchange, assetPair, params) ->
-    sellThread = new SellThread(exchange, assetPair, params)
-    if sellThread.active == false then return null 
-    return sellThread
+selldirectionrunner.create = (exch, pair, params) -> new SellThread(exch, pair, params)
 
 module.exports = selldirectionrunner
