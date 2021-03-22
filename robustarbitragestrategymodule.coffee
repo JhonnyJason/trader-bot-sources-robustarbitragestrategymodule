@@ -170,7 +170,7 @@ handleRealizedIdeas = (exchange, assetPair) ->
     
     if backOrders.buyBack and backOrders.buyBack.eaten
         if heads.sellHead?
-            await cancelIdea(heads.sellHead)
+            await cancelIdea(heads.sellHead) if heads.sellHead.isRealized
             freeAllocatedSellBudget(heads.sellHead)
 
         registerEatenBuyBack(backOrders.buyBack)
@@ -180,7 +180,7 @@ handleRealizedIdeas = (exchange, assetPair) ->
 
     if backOrders.sellBack and backOrders.sellBack.eaten
         if heads.buyHead?
-            await cancelIdea(heads.buyHead)
+            await cancelIdea(heads.buyHead) if heads.buyHead.isRealized
             freeAllocatedBuyBudget(heads.buyHead)
             
         registerEatenSellBack(backOrders.sellBack)
